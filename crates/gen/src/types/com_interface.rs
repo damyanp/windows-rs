@@ -98,11 +98,25 @@ impl ComInterface {
                     return quote! {};
                 }
 
+                let is_retval = signature.is_retval();
                 let constraints = signature.gen_win32_constraints(&signature.params, gen);
-                let params = signature.gen_win32_params(&signature.params, gen);
+
+                let params = if is_retval {
+                    &signature.params[..signature.params.len() - 1]
+                } else {
+                    &signature.params
+                };
+
+                let args = params.iter().map(|p| p.gen_win32_abi_arg());
+                let params = signature.gen_win32_params(params, gen);
 
                 let (udt_return_type, udt_return_local, return_type, udt_return_expression) = if let Some(t) = &signature.return_type {
-                    if t.is_struct() {
+                    if is_retval {
+                        let kind = &signature.params[signature.params.len() - 1].signature.kind;
+                        let abi_tokens = kind.gen_abi_name(gen);
+                        let tokens = kind.gen_name(gen);
+                        (quote! { &mut result__ }, quote! { let mut result__: #abi_tokens = ::std::mem::zeroed(); }, quote! { -> ::windows::Result<#tokens> }, quote! { .from_abi::<#tokens>(result__ ) })
+                    } else if t.is_struct() {
                         let tokens = t.kind.gen_abi_name(gen);
                         (quote! { &mut result__ }, quote! { let mut result__: #tokens = ::std::default::Default::default(); }, quote! { -> #tokens }, quote! { ;result__ })
                     } else {
@@ -112,8 +126,6 @@ impl ComInterface {
                 } else {
                     (TokenStream::new(), TokenStream::new(), TokenStream::new(), quote!{})
                 };
-
-                let args = signature.params.iter().map(|p| p.gen_win32_abi_arg());
 
                 let name = method.name();
                 let overload = method_names.entry(name.to_string()).or_insert(0);

@@ -22,6 +22,18 @@ impl MethodSignature {
             .collect()
     }
 
+    pub fn is_retval(&self) -> bool {
+        if let Some(t) = &self.return_type {
+            if t.kind == ElementType::ErrorCode {
+                if let Some(last) = self.params.last() {
+                    return last.param.has_attribute("RetValAttribute");
+                }
+            }
+        }
+
+        false
+    }
+
     pub fn gen_winrt_constraint(&self, gen: &Gen) -> TokenStream {
         let params = self.params.iter().map(|p| p.gen_winrt_produce_type(gen));
 
@@ -157,7 +169,7 @@ impl MethodSignature {
                 quote! {
                     let mut result__: <#return_type_tokens as ::windows::Abi>::Abi = ::std::mem::zeroed();
                         (::windows::Interface::vtable(this).#vtable_offset)(::windows::Abi::abi(this), #(#args,)* #composable_args #return_arg)
-                            .from_abi::<#return_type_tokens>(result__ )
+                            .from_abi::<#return_type_tokens>(result__)
                 }
             }
         } else {
