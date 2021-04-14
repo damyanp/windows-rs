@@ -53,7 +53,7 @@ impl Function {
         if cfg!(windows) {
             quote! {
                 pub unsafe fn #name<#constraints>(#params) #return_type {
-                    #[link(name = #link)]
+                    #[link(name = #link, kind = "raw-dylib")]
                     extern "system" {
                         pub fn #name(#(#abi_params),*) #abi_return_type;
                     }

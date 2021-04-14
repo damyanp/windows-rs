@@ -1751,21 +1751,21 @@ pub mod Windows {
                 strin: impl ::windows::IntoParam<'a, super::SystemServices::PWSTR>,
                 ui: u32,
             ) -> BSTR {
-                #[link(name = "OLEAUT32")]
+                #[link(name = "OLEAUT32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn SysAllocStringLen(strin: super::SystemServices::PWSTR, ui: u32) -> BSTR;
                 }
                 SysAllocStringLen(strin.into_param().abi(), ::std::mem::transmute(ui))
             }
             pub unsafe fn SysStringLen<'a>(pbstr: impl ::windows::IntoParam<'a, BSTR>) -> u32 {
-                #[link(name = "OLEAUT32")]
+                #[link(name = "OLEAUT32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn SysStringLen(pbstr: BSTR_abi) -> u32;
                 }
                 SysStringLen(pbstr.into_param().abi())
             }
             pub unsafe fn SysFreeString<'a>(bstrstring: impl ::windows::IntoParam<'a, BSTR>) {
-                #[link(name = "OLEAUT32")]
+                #[link(name = "OLEAUT32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn SysFreeString(bstrstring: BSTR_abi);
                 }
@@ -2003,7 +2003,7 @@ pub mod Windows {
                 dwreserved: u32,
                 pperrinfo: *mut ::std::option::Option<IErrorInfo>,
             ) -> ::windows::HRESULT {
-                #[link(name = "OLEAUT32")]
+                #[link(name = "OLEAUT32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn GetErrorInfo(
                         dwreserved: u32,
@@ -2019,7 +2019,7 @@ pub mod Windows {
                 dwreserved: u32,
                 perrinfo: impl ::windows::IntoParam<'a, IErrorInfo>,
             ) -> ::windows::HRESULT {
-                #[link(name = "OLEAUT32")]
+                #[link(name = "OLEAUT32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn SetErrorInfo(
                         dwreserved: u32,
@@ -2043,21 +2043,21 @@ pub mod Windows {
         )]
         pub mod Com {
             pub unsafe fn CoCreateGuid(pguid: *mut ::windows::Guid) -> ::windows::HRESULT {
-                #[link(name = "OLE32")]
+                #[link(name = "OLE32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CoCreateGuid(pguid: *mut ::windows::Guid) -> ::windows::HRESULT;
                 }
                 CoCreateGuid(::std::mem::transmute(pguid))
             }
             pub unsafe fn CoTaskMemAlloc(cb: usize) -> *mut ::std::ffi::c_void {
-                #[link(name = "OLE32")]
+                #[link(name = "OLE32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CoTaskMemAlloc(cb: usize) -> *mut ::std::ffi::c_void;
                 }
                 CoTaskMemAlloc(::std::mem::transmute(cb))
             }
             pub unsafe fn CoTaskMemFree(pv: *mut ::std::ffi::c_void) {
-                #[link(name = "OLE32")]
+                #[link(name = "OLE32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CoTaskMemFree(pv: *mut ::std::ffi::c_void);
                 }
@@ -2067,7 +2067,7 @@ pub mod Windows {
                 lpszprogid: impl ::windows::IntoParam<'a, super::SystemServices::PWSTR>,
                 lpclsid: *mut ::windows::Guid,
             ) -> ::windows::HRESULT {
-                #[link(name = "OLE32")]
+                #[link(name = "OLE32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CLSIDFromProgID(
                         lpszprogid: super::SystemServices::PWSTR,
@@ -2129,7 +2129,7 @@ pub mod Windows {
                 pvreserved: *mut ::std::ffi::c_void,
                 dwcoinit: COINIT,
             ) -> ::windows::HRESULT {
-                #[link(name = "OLE32")]
+                #[link(name = "OLE32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CoInitializeEx(
                         pvreserved: *mut ::std::ffi::c_void,
@@ -2219,7 +2219,7 @@ pub mod Windows {
                 riid: *const ::windows::Guid,
                 ppv: *mut *mut ::std::ffi::c_void,
             ) -> ::windows::HRESULT {
-                #[link(name = "OLE32")]
+                #[link(name = "OLE32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CoCreateInstance(
                         rclsid: *const ::windows::Guid,
@@ -5504,7 +5504,7 @@ pub mod Windows {
                 }
             }
             pub unsafe fn GetLastError() -> WIN32_ERROR {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn GetLastError() -> WIN32_ERROR;
                 }
@@ -5567,7 +5567,7 @@ pub mod Windows {
                 nsize: u32,
                 arguments: *mut *mut i8,
             ) -> u32 {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn FormatMessageW(
                         dwflags: FORMAT_MESSAGE_OPTIONS,
@@ -5884,7 +5884,7 @@ pub mod Windows {
                 binitialstate: impl ::windows::IntoParam<'a, BOOL>,
                 lpname: impl ::windows::IntoParam<'a, PSTR>,
             ) -> HANDLE {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CreateEventA(
                         lpeventattributes: *mut SECURITY_ATTRIBUTES,
@@ -5901,7 +5901,7 @@ pub mod Windows {
                 )
             }
             pub unsafe fn SetEvent<'a>(hevent: impl ::windows::IntoParam<'a, HANDLE>) -> BOOL {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn SetEvent(hevent: HANDLE) -> BOOL;
                 }
@@ -5959,7 +5959,7 @@ pub mod Windows {
                 hhandle: impl ::windows::IntoParam<'a, HANDLE>,
                 dwmilliseconds: u32,
             ) -> WAIT_RETURN_CAUSE {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn WaitForSingleObject(
                         hhandle: HANDLE,
@@ -6039,7 +6039,7 @@ pub mod Windows {
                 }
             }
             pub unsafe fn GetProcessHeap() -> ProcessHeapHandle {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn GetProcessHeap() -> ProcessHeapHandle;
                 }
@@ -6109,7 +6109,7 @@ pub mod Windows {
                 dwflags: HEAP_FLAGS,
                 dwbytes: usize,
             ) -> *mut ::std::ffi::c_void {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn HeapAlloc(
                         hheap: HeapHandle,
@@ -6128,7 +6128,7 @@ pub mod Windows {
                 dwflags: HEAP_FLAGS,
                 lpmem: *mut ::std::ffi::c_void,
             ) -> BOOL {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn HeapFree(
                         hheap: HeapHandle,
@@ -6147,7 +6147,7 @@ pub mod Windows {
                 hmodule: isize,
                 lpprocname: impl ::windows::IntoParam<'a, PSTR>,
             ) -> ::std::option::Option<FARPROC> {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn GetProcAddress(
                         hmodule: isize,
@@ -6162,14 +6162,14 @@ pub mod Windows {
             pub unsafe fn LoadLibraryA<'a>(
                 lplibfilename: impl ::windows::IntoParam<'a, PSTR>,
             ) -> isize {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn LoadLibraryA(lplibfilename: PSTR) -> isize;
                 }
                 LoadLibraryA(lplibfilename.into_param().abi())
             }
             pub unsafe fn FreeLibrary(hlibmodule: isize) -> BOOL {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn FreeLibrary(hlibmodule: isize) -> BOOL;
                 }
@@ -6496,7 +6496,7 @@ pub mod Windows {
             pub unsafe fn CloseHandle<'a>(
                 hobject: impl ::windows::IntoParam<'a, super::SystemServices::HANDLE>,
             ) -> super::SystemServices::BOOL {
-                #[link(name = "KERNEL32")]
+                #[link(name = "KERNEL32", kind = "raw-dylib")]
                 extern "system" {
                     pub fn CloseHandle(
                         hobject: super::SystemServices::HANDLE,

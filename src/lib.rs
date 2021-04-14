@@ -8,6 +8,8 @@ where you can call them as if they were just another Rust module.
 Learn more here: <https://github.com/microsoft/windows-rs>
 */
 
+#![feature(raw_dylib)]
+
 #[macro_use]
 mod macros;
 
