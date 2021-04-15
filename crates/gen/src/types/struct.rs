@@ -21,37 +21,61 @@ impl Struct {
 
     pub fn dependencies(&self) -> Vec<ElementType> {
         let reader = TypeReader::get();
+        let mut dependencies = vec![];
 
-        // TODO: add tests for each
+        if let Some(function) = self.can_drop() {
+            dependencies.push(function);
+        }
+
+        // TODO: add tests for each of the custom dependencies
         match self.0.full_name() {
-            ("Windows.Win32.Automation", "BSTR") => vec![
-                reader.resolve_type("Windows.Win32.Automation", "SysAllocStringLen"),
-                reader.resolve_type("Windows.Win32.Automation", "SysStringLen"),
-                reader.resolve_type("Windows.Win32.Automation", "SysFreeString"),
-            ],
+            ("Windows.Win32.Automation", "BSTR") => {
+                dependencies
+                    .push(reader.resolve_type("Windows.Win32.Automation", "SysAllocStringLen"));
+                dependencies.push(reader.resolve_type("Windows.Win32.Automation", "SysStringLen"));
+            }
             ("Windows.Foundation.Numerics", "Matrix3x2") => {
-                vec![reader.resolve_type("Windows.Win32.Direct2D", "D2D1MakeRotateMatrix")]
+                dependencies
+                    .push(reader.resolve_type("Windows.Win32.Direct2D", "D2D1MakeRotateMatrix"));
             }
             _ => {
-                let mut dependencies: Vec<ElementType> =
-                    self.0.fields().map(|f| f.definition()).flatten().collect();
+                dependencies.extend(self.0.fields().map(|f| f.definition()).flatten());
 
                 if let Some(dependency) = self.0.is_convertible() {
                     dependencies.push(dependency);
                 }
-
-                dependencies
             }
         }
+
+        dependencies
     }
 
     pub fn definition(&self) -> Vec<ElementType> {
         vec![ElementType::Struct(self.clone())]
     }
 
+    pub fn can_drop(&self) -> Option<ElementType> {
+        self.0.attributes().find_map(|attribute| {
+            if attribute.name() == "RAIIFreeAttribute" {
+                if let Some((_, ConstantValue::String(name))) = attribute.args().get(0) {
+                    // TODO: https://github.com/microsoft/win32metadata/issues/389
+
+                    let namespace = if name == "CloseHandle" {
+                        "Windows.Win32.WindowsProgramming"
+                    } else {
+                        self.0.namespace()
+                    };
+
+                    return Some(TypeReader::get().resolve_type(namespace, name));
+                }
+            }
+
+            None
+        })
+    }
+
     pub fn is_blittable(&self) -> bool {
-        // TODO: should this only be applied to types where we actually take advantage of the RAII attribute?
-        if self.0.full_name() == ("Windows.Win32.Automation", "BSTR") {
+        if self.can_drop().is_some() {
             false
         } else {
             self.0.fields().all(|f| f.is_blittable())
@@ -160,11 +184,29 @@ impl Struct {
             quote! {}
         };
 
+        let can_drop = self.can_drop();
+
+        let drop = if let Some(function) = can_drop.as_ref() {
+            let function = function.gen_name(gen);
+
+            quote! {
+                impl ::std::ops::Drop for #name {
+                    fn drop(&mut self) {
+                        if !self.is_null() {
+                            unsafe { #function(self as &Self); }
+                        }
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         let clone_or_copy = if self.is_blittable() {
             quote! {
                 #[derive(::std::clone::Clone, ::std::marker::Copy)]
             }
-        } else if is_union || has_union || is_packed {
+        } else if is_union || has_union || is_packed || can_drop.is_some() {
             quote! {}
         } else {
             quote! {
@@ -313,57 +355,44 @@ impl Struct {
         let default = if is_union || has_union || has_complex_array || is_packed {
             quote! {}
         } else {
-            let defaults = if is_handle {
-                if is_winrt {
-                    let defaults = fields
-                        .iter()
-                        .map(|(_, signature, _)| signature.gen_winrt_default());
-                    quote! {
-                        Self( #(#defaults),* )
-                    }
+            let defaults = fields.iter().map(|(_, signature, name)| {
+                let value = if is_winrt {
+                    signature.gen_winrt_default()
                 } else {
-                    let defaults = fields
-                        .iter()
-                        .map(|(_, signature, _)| signature.gen_win32_default());
-                    quote! {
-                        Self( #(#defaults),* )
-                    }
-                }
-            } else {
-                let defaults = fields.iter().map(|(_, signature, name)| {
-                    let value = if is_winrt {
-                        signature.gen_winrt_default()
-                    } else {
-                        signature.gen_win32_default()
-                    };
+                    signature.gen_win32_default()
+                };
+
+                if is_handle {
+                    value
+                } else {
                     quote! {
                         #name: #value
                     }
-                });
-
-                quote! {
-                    Self{ #(#defaults),* }
                 }
-            };
+            });
 
-            let null = if is_handle {
+            let defaults = quote! { #(#defaults),* };
+
+            if is_handle {
                 quote! {
+                    impl ::std::default::Default for #name {
+                        fn default() -> Self {
+                            Self(#defaults)
+                        }
+                    }
                     impl #name {
-                        pub const NULL: Self = #defaults;
+                        pub const NULL: Self = Self(#defaults);
                         pub fn is_null(&self) -> bool {
-                            self == &Self::NULL
+                            self.0 == #defaults
                         }
                     }
                 }
             } else {
-                quote! {}
-            };
-
-            quote! {
-                #null
-                impl ::std::default::Default for #name {
-                    fn default() -> Self {
-                        #defaults
+                quote! {
+                    impl ::std::default::Default for #name {
+                        fn default() -> Self {
+                            Self{ #defaults }
+                        }
                     }
                 }
             }
@@ -455,6 +484,7 @@ impl Struct {
                 #(#constants)*
             }
             #default
+            #drop
             #debug
             #compare
             #abi

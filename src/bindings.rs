@@ -1747,6 +1747,13 @@ pub mod Windows {
             clippy::all
         )]
         pub mod Automation {
+            pub unsafe fn SysFreeString<'a>(bstrstring: impl ::windows::IntoParam<'a, BSTR>) {
+                #[link(name = "OLEAUT32")]
+                extern "system" {
+                    pub fn SysFreeString(bstrstring: BSTR_abi);
+                }
+                SysFreeString(bstrstring.into_param().abi())
+            }
             pub unsafe fn SysAllocStringLen<'a>(
                 strin: impl ::windows::IntoParam<'a, super::SystemServices::PWSTR>,
                 ui: u32,
@@ -1763,13 +1770,6 @@ pub mod Windows {
                     pub fn SysStringLen(pbstr: BSTR_abi) -> u32;
                 }
                 SysStringLen(pbstr.into_param().abi())
-            }
-            pub unsafe fn SysFreeString<'a>(bstrstring: impl ::windows::IntoParam<'a, BSTR>) {
-                #[link(name = "OLEAUT32")]
-                extern "system" {
-                    pub fn SysFreeString(bstrstring: BSTR_abi);
-                }
-                SysFreeString(bstrstring.into_param().abi())
             }
             #[repr(transparent)]
             #[derive(:: std :: cmp :: Eq)]
@@ -5658,54 +5658,17 @@ pub mod Windows {
             }
             #[repr(transparent)]
             #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
-            pub struct HANDLE(pub isize);
-            impl HANDLE {}
-            impl HANDLE {
-                pub const NULL: Self = Self(0);
-                pub fn is_null(&self) -> bool {
-                    self == &Self::NULL
-                }
-            }
-            impl ::std::default::Default for HANDLE {
-                fn default() -> Self {
-                    Self(0)
-                }
-            }
-            impl ::std::fmt::Debug for HANDLE {
-                fn fmt(&self, fmt: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                    fmt.debug_struct("HANDLE")
-                        .field("Value", &format_args!("{:?}", self.0))
-                        .finish()
-                }
-            }
-            impl ::std::cmp::PartialEq for HANDLE {
-                fn eq(&self, other: &Self) -> bool {
-                    self.0 == other.0
-                }
-            }
-            impl ::std::cmp::Eq for HANDLE {}
-            unsafe impl ::windows::Abi for HANDLE {
-                type Abi = Self;
-            }
-            impl HANDLE {
-                pub const INVALID: Self = Self(-1);
-                pub fn is_invalid(&self) -> bool {
-                    self.0 == -1
-                }
-            }
-            #[repr(transparent)]
-            #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
             pub struct BOOL(pub i32);
             impl BOOL {}
-            impl BOOL {
-                pub const NULL: Self = Self(0);
-                pub fn is_null(&self) -> bool {
-                    self == &Self::NULL
-                }
-            }
             impl ::std::default::Default for BOOL {
                 fn default() -> Self {
                     Self(0)
+                }
+            }
+            impl BOOL {
+                pub const NULL: Self = Self(0);
+                pub fn is_null(&self) -> bool {
+                    self.0 == 0
                 }
             }
             impl ::std::fmt::Debug for BOOL {
@@ -5793,6 +5756,57 @@ pub mod Windows {
             impl<'a> ::windows::IntoParam<'a, BOOL> for bool {
                 fn into_param(self) -> ::windows::Param<'a, BOOL> {
                     ::windows::Param::Owned(self.into())
+                }
+            }
+            #[repr(transparent)]
+            pub struct HANDLE(pub isize);
+            impl HANDLE {}
+            impl ::std::default::Default for HANDLE {
+                fn default() -> Self {
+                    Self(0)
+                }
+            }
+            impl HANDLE {
+                pub const NULL: Self = Self(0);
+                pub fn is_null(&self) -> bool {
+                    self.0 == 0
+                }
+            }
+            impl ::std::ops::Drop for HANDLE {
+                fn drop(&mut self) {
+                    if !self.is_null() {
+                        unsafe {
+                            super::WindowsProgramming::CloseHandle(self as &Self);
+                        }
+                    }
+                }
+            }
+            impl ::std::fmt::Debug for HANDLE {
+                fn fmt(&self, fmt: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                    fmt.debug_struct("HANDLE")
+                        .field("Value", &format_args!("{:?}", self.0))
+                        .finish()
+                }
+            }
+            impl ::std::cmp::PartialEq for HANDLE {
+                fn eq(&self, other: &Self) -> bool {
+                    self.0 == other.0
+                }
+            }
+            impl ::std::cmp::Eq for HANDLE {}
+            #[repr(transparent)]
+            #[doc(hidden)]
+            #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
+            pub struct HANDLE_abi {
+                pub Value: isize,
+            }
+            unsafe impl ::windows::Abi for HANDLE {
+                type Abi = HANDLE_abi;
+            }
+            impl HANDLE {
+                pub const INVALID: Self = Self(-1);
+                pub fn is_invalid(&self) -> bool {
+                    self.0 == -1
                 }
             }
             #[repr(C)]
@@ -5916,7 +5930,7 @@ pub mod Windows {
             pub unsafe fn SetEvent<'a>(hevent: impl ::windows::IntoParam<'a, HANDLE>) -> BOOL {
                 #[link(name = "KERNEL32")]
                 extern "system" {
-                    pub fn SetEvent(hevent: HANDLE) -> BOOL;
+                    pub fn SetEvent(hevent: HANDLE_abi) -> BOOL;
                 }
                 SetEvent(hevent.into_param().abi())
             }
@@ -5975,7 +5989,7 @@ pub mod Windows {
                 #[link(name = "KERNEL32")]
                 extern "system" {
                     pub fn WaitForSingleObject(
-                        hhandle: HANDLE,
+                        hhandle: HANDLE_abi,
                         dwmilliseconds: u32,
                     ) -> WAIT_RETURN_CAUSE;
                 }
@@ -5984,19 +5998,36 @@ pub mod Windows {
                     ::std::mem::transmute(dwmilliseconds),
                 )
             }
+            pub unsafe fn HeapDestroy<'a>(
+                hheap: impl ::windows::IntoParam<'a, HeapHandle>,
+            ) -> BOOL {
+                #[link(name = "KERNEL32")]
+                extern "system" {
+                    pub fn HeapDestroy(hheap: HeapHandle_abi) -> BOOL;
+                }
+                HeapDestroy(hheap.into_param().abi())
+            }
             #[repr(transparent)]
-            #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
             pub struct HeapHandle(pub isize);
             impl HeapHandle {}
-            impl HeapHandle {
-                pub const NULL: Self = Self(0);
-                pub fn is_null(&self) -> bool {
-                    self == &Self::NULL
-                }
-            }
             impl ::std::default::Default for HeapHandle {
                 fn default() -> Self {
                     Self(0)
+                }
+            }
+            impl HeapHandle {
+                pub const NULL: Self = Self(0);
+                pub fn is_null(&self) -> bool {
+                    self.0 == 0
+                }
+            }
+            impl ::std::ops::Drop for HeapHandle {
+                fn drop(&mut self) {
+                    if !self.is_null() {
+                        unsafe {
+                            HeapDestroy(self as &Self);
+                        }
+                    }
                 }
             }
             impl ::std::fmt::Debug for HeapHandle {
@@ -6012,22 +6043,28 @@ pub mod Windows {
                 }
             }
             impl ::std::cmp::Eq for HeapHandle {}
+            #[repr(transparent)]
+            #[doc(hidden)]
+            #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
+            pub struct HeapHandle_abi {
+                pub Value: isize,
+            }
             unsafe impl ::windows::Abi for HeapHandle {
-                type Abi = Self;
+                type Abi = HeapHandle_abi;
             }
             #[repr(transparent)]
             #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
             pub struct ProcessHeapHandle(pub isize);
             impl ProcessHeapHandle {}
-            impl ProcessHeapHandle {
-                pub const NULL: Self = Self(0);
-                pub fn is_null(&self) -> bool {
-                    self == &Self::NULL
-                }
-            }
             impl ::std::default::Default for ProcessHeapHandle {
                 fn default() -> Self {
                     Self(0)
+                }
+            }
+            impl ProcessHeapHandle {
+                pub const NULL: Self = Self(0);
+                pub fn is_null(&self) -> bool {
+                    self.0 == 0
                 }
             }
             impl ::std::fmt::Debug for ProcessHeapHandle {
@@ -6125,7 +6162,7 @@ pub mod Windows {
                 #[link(name = "KERNEL32")]
                 extern "system" {
                     pub fn HeapAlloc(
-                        hheap: HeapHandle,
+                        hheap: HeapHandle_abi,
                         dwflags: HEAP_FLAGS,
                         dwbytes: usize,
                     ) -> *mut ::std::ffi::c_void;
@@ -6144,7 +6181,7 @@ pub mod Windows {
                 #[link(name = "KERNEL32")]
                 extern "system" {
                     pub fn HeapFree(
-                        hheap: HeapHandle,
+                        hheap: HeapHandle_abi,
                         dwflags: HEAP_FLAGS,
                         lpmem: *mut ::std::ffi::c_void,
                     ) -> BOOL;
@@ -6512,7 +6549,7 @@ pub mod Windows {
                 #[link(name = "KERNEL32")]
                 extern "system" {
                     pub fn CloseHandle(
-                        hobject: super::SystemServices::HANDLE,
+                        hobject: super::SystemServices::HANDLE_abi,
                     ) -> super::SystemServices::BOOL;
                 }
                 CloseHandle(hobject.into_param().abi())
