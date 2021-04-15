@@ -27,7 +27,6 @@ impl Struct {
             dependencies.push(function);
         }
 
-        // TODO: add tests for each of the custom dependencies
         match self.0.full_name() {
             ("Windows.Win32.Automation", "BSTR") => {
                 dependencies
@@ -506,6 +505,7 @@ impl Struct {
 
     fn gen_replacement(&self) -> Option<TokenStream> {
         match self.0.full_name() {
+            ("Windows.Win32.SystemServices", "BOOL") => Some(gen_bool32()),
             ("Windows.Win32.SystemServices", "PWSTR") => Some(gen_pwstr()),
             ("Windows.Win32.SystemServices", "PSTR") => Some(gen_pstr()),
             ("Windows.Win32.Automation", "BSTR") => Some(gen_bstr()),
@@ -521,7 +521,6 @@ impl Struct {
             ("Windows.Foundation.Numerics", "Vector4") => gen_vector4(),
             ("Windows.Foundation.Numerics", "Matrix3x2") => gen_matrix3x2(),
             ("Windows.Foundation.Numerics", "Matrix4x4") => gen_matrix4x4(),
-            ("Windows.Win32.SystemServices", "BOOL") => gen_bool32(),
             ("Windows.Win32.SystemServices", "HANDLE") => gen_handle(),
             _ => TokenStream::new(),
         }

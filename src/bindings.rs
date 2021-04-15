@@ -5657,33 +5657,15 @@ pub mod Windows {
                 }
             }
             #[repr(transparent)]
-            #[derive(:: std :: clone :: Clone, :: std :: marker :: Copy)]
+            #[derive(
+                :: std :: default :: Default,
+                :: std :: clone :: Clone,
+                :: std :: marker :: Copy,
+                :: std :: cmp :: PartialEq,
+                :: std :: cmp :: Eq,
+                :: std :: fmt :: Debug,
+            )]
             pub struct BOOL(pub i32);
-            impl BOOL {}
-            impl ::std::default::Default for BOOL {
-                fn default() -> Self {
-                    Self(0)
-                }
-            }
-            impl BOOL {
-                pub const NULL: Self = Self(0);
-                pub fn is_null(&self) -> bool {
-                    self.0 == 0
-                }
-            }
-            impl ::std::fmt::Debug for BOOL {
-                fn fmt(&self, fmt: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                    fmt.debug_struct("BOOL")
-                        .field("Value", &format_args!("{:?}", self.0))
-                        .finish()
-                }
-            }
-            impl ::std::cmp::PartialEq for BOOL {
-                fn eq(&self, other: &Self) -> bool {
-                    self.0 == other.0
-                }
-            }
-            impl ::std::cmp::Eq for BOOL {}
             unsafe impl ::windows::Abi for BOOL {
                 type Abi = Self;
             }
@@ -6085,7 +6067,12 @@ pub mod Windows {
             }
             impl<'a> ::windows::IntoParam<'a, HeapHandle> for ProcessHeapHandle {
                 fn into_param(self) -> ::windows::Param<'a, HeapHandle> {
-                    ::windows::Param::Owned(HeapHandle(self.0))
+                    ::windows::Param::Owned(::std::mem::transmute(self))
+                }
+            }
+            impl<'a> ::windows::IntoParam<'a, HeapHandle> for &'a ProcessHeapHandle {
+                fn into_param(self) -> ::windows::Param<'a, HeapHandle> {
+                    ::windows::Param::Borrowed(::std::mem::transmute(self))
                 }
             }
             pub unsafe fn GetProcessHeap() -> ProcessHeapHandle {
