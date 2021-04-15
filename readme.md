@@ -43,13 +43,13 @@ Finally, make use of any Windows APIs as needed.
 
 ```rust
 mod bindings {
-    ::windows::include_bindings!();
+    windows::include_bindings!();
 }
 
 use bindings::{
     Windows::Data::Xml::Dom::*,
-    Windows::Win32::SystemServices::{CreateEventW, SetEvent, WaitForSingleObject, PWSTR},
-    Windows::Win32::WindowsAndMessaging::{MessageBoxA, HWND, MESSAGEBOX_STYLE},
+    Windows::Win32::SystemServices::{CreateEventW, SetEvent, WaitForSingleObject},
+    Windows::Win32::WindowsAndMessaging::{MessageBoxA, MESSAGEBOX_STYLE},
     Windows::Win32::WindowsProgramming::CloseHandle,
 };
 
@@ -62,19 +62,19 @@ fn main() -> windows::Result<()> {
     assert!(root.InnerText()? == "hello world");
 
     unsafe {
-        let event = CreateEventW(std::ptr::null_mut(), true, false, PWSTR::NULL);
+        let event = CreateEventW(std::ptr::null_mut(), true, false, None);
         SetEvent(event).ok()?;
         WaitForSingleObject(event, 0);
         CloseHandle(event).ok()?;
 
-        MessageBoxA(HWND(0), "Text", "Caption", MESSAGEBOX_STYLE::MB_OK);
+        MessageBoxA(None, "Text", "Caption", MESSAGEBOX_STYLE::MB_OK);
     }
 
     Ok(())
 }
 ```
 
-To reduce build time, use a `bindings` crate rather simply a module. This will allow Cargo to cache the results and build your project far more quickly.
+To reduce build time, use a `bindings` crate rather than simply a module. This will allow Cargo to cache the results and build your project far more quickly.
 
 There is an experimental [documentation generator](https://github.com/microsoft/windows-docs-rs) for the Windows API. The documentation [is published here](https://microsoft.github.io/windows-docs-rs/). This can be useful to figure out how the various Windows APIs map to Rust modules and which `use` paths you need to use from within the `build` macro.
 

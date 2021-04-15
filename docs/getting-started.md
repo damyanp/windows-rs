@@ -29,10 +29,10 @@ We can generate our bindings inside of the `bindings` crate. To do this, we'll n
 ```toml
 # ^^ The rest of the Cargo.toml remains the same
 [dependencies]
-windows = "0.7" # Check https://crates.io/crates/windows for the latest version
+windows = "0.8" # Check https://crates.io/crates/windows for the latest version
 
 [build-dependencies]
-windows = "0.7"
+windows = "0.8"
 ```
 
 Now that the `bindings` crate depends on the `windows` crate, we can generate our bindings inside of a build script. In case you're not familiar with build scripts, they're simply Rust files that get run automatically by cargo when building a Rust crate. To add one, we simply put a "build.rs" file in the `bindings` crate's directory. We'll add the `windows::build!` macro which is where we declare which Windows APIs we want to generate bindings for.
@@ -65,7 +65,7 @@ fn main() {
 We're not done! This generates the bindings, but it just puts them into the target folder of our crate where they'll go unused. We want to actually *use* this generated code not just generate and forget about it. In order for the generated code to be exported from the `bindings` crate, we need to include it in the crate itself. Change the lib.rs file of the bindings crate to the following:
 
 ```rust
-::windows::include_bindings!();
+windows::include_bindings!();
 ```
 
 This effectively copy/pastes the generated code into the `lib.rs` file. The `bindings` crate now exports all the bindings we've generated. Next, we need to make sure our `spellchecker` crate depends on the `bindings` crate. In the `spellchecker` crate's Cargo.toml file, add the `bindings` crate as a dependency. We'll also add the `windows` crate as a dependency since we'll be using that as well in our `spellchecker` crate.
@@ -74,7 +74,7 @@ This effectively copy/pastes the generated code into the `lib.rs` file. The `bin
 # ^^ The rest of the Cargo.toml remains the same
 [dependencies]
 bindings = { path = "bindings" }
-windows = "0.7" # This should match the version you used in the bindings crate
+windows = "0.8" # This should match the version you used in the bindings crate
 ```
 
 And we're done bootstrapping the project. Now we'll move on to the code of the `spellchecker` crate which will use both the generated bindings from the `bindings` crate as well as helper functionality from the `windows` crate.
@@ -215,7 +215,7 @@ We should get the following output:
 Corrective Action: CORRECTIVE_ACTION(1)
 ```
 
-Looking at the [docs for `CORRECTIVE_ACTION](https://docs.microsoft.com/en-us/windows/win32/api/spellcheck/ne-spellcheck-corrective_action), we can see that 1-index action corresponds to `CORRECTIVE_ACTION_GET_SUGGESTIONS`, meaning the spellchecking API has suggestions.
+Looking at the [docs for `CORRECTIVE_ACTION`](https://docs.microsoft.com/en-us/windows/win32/api/spellcheck/ne-spellcheck-corrective_action), we can see that 1-index action corresponds to `CORRECTIVE_ACTION_GET_SUGGESTIONS`, meaning the spellchecking API has suggestions.
 
 ## Next Steps
 
