@@ -2,7 +2,6 @@ use crate::*;
 
 use bindings::{
     Windows::Win32::SystemServices::{CreateEventA, SetEvent, WaitForSingleObject, HANDLE, PSTR},
-    Windows::Win32::WindowsProgramming::CloseHandle,
 };
 
 /// A simple blocking waiter used by the generated bindings and should not be used directly.
@@ -12,8 +11,9 @@ pub struct WaiterSignaler(HANDLE);
 impl Waiter {
     pub fn new() -> (Waiter, WaiterSignaler) {
         unsafe {
-            let handle = CreateEventA(std::ptr::null_mut(), true, false, PSTR::NULL);
-            (Waiter(handle), WaiterSignaler(handle))
+            let waiter = Waiter(CreateEventA(std::ptr::null_mut(), true, false, PSTR::NULL));
+            let signaler = WaiterSignaler(HANDLE(waiter.0.0));
+            (waiter, signaler)
         }
     }
 }
@@ -25,15 +25,20 @@ impl WaiterSignaler {
     /// of the delegate is bounded by the calling function.
     pub unsafe fn signal(&self) {
         // https://github.com/microsoft/windows-rs/pull/374#discussion_r535313344
-        SetEvent(self.0);
+        SetEvent(&self.0);
     }
 }
 
 impl Drop for Waiter {
     fn drop(&mut self) {
         unsafe {
-            WaitForSingleObject(self.0, 0xFFFFFFFF);
-            CloseHandle(self.0);
+            WaitForSingleObject(&self.0, 0xFFFFFFFF);
         }
+    }
+}
+
+impl Drop for WaiterSignaler {
+    fn drop(&mut self) {
+        std::mem::forget(self);
     }
 }

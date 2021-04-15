@@ -62,6 +62,10 @@ impl Struct {
 
                     let namespace = if name == "CloseHandle" {
                         "Windows.Win32.WindowsProgramming"
+                    } else if name == "DestroyMenu" || name == "DestroyIcon" || name == "DestroyCursor" {
+                        "Windows.Win32.WindowsAndMessaging"
+                    } else if name == "ReleaseDC" || name == "FreeLibrary" {
+                        return None;
                     } else {
                         self.0.namespace()
                     };
@@ -468,7 +472,12 @@ impl Struct {
             quote! {
                 impl<'a> ::windows::IntoParam<'a, #dependency> for #name {
                     fn into_param(self) -> ::windows::Param<'a, #dependency> {
-                        ::windows::Param::Owned(#dependency(self.0))
+                        ::windows::Param::Owned(::std::mem::transmute(self))
+                    }
+                }
+                impl<'a> ::windows::IntoParam<'a, #dependency> for &'a #name {
+                    fn into_param(self) -> ::windows::Param<'a, #dependency> {
+                        ::windows::Param::Borrowed(::std::mem::transmute(self))
                     }
                 }
             }
