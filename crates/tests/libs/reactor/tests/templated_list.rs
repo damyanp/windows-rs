@@ -311,6 +311,51 @@ fn shrinking_list_unmounts_rows_beyond_new_tail() {
 }
 
 #[test]
+fn eager_growth_realizes_newly_added_rows() {
+    // Regression: with eager realization, growing a list must realize the
+    // appended rows. The WinUI backend has no virtualization callbacks, so
+    // without this the new rows stay blank (as seen in a live process list).
+    let old_el = list_view((0..2).collect::<Vec<i32>>(), |n, _| {
+        TextBlock::new(n.to_string())
+    })
+    .build();
+    let new_el = list_view((0..5).collect::<Vec<i32>>(), |n, _| {
+        TextBlock::new(n.to_string())
+    })
+    .build();
+
+    let mut r = Reconciler::new(RecordingBackend::new());
+    r.eager_templated_realization = true;
+    let list_id = r
+        .reconcile(None, &old_el, None, noop_request_rerender())
+        .unwrap();
+    r.drain_realizations();
+    assert_eq!(
+        r.backend.row_contents_of(list_id).len(),
+        2,
+        "eager mount should realize all initial rows"
+    );
+
+    let _ = r.reconcile(
+        Some(&old_el),
+        &new_el,
+        Some(list_id),
+        noop_request_rerender(),
+    );
+    r.drain_realizations();
+
+    let rows = r.backend.row_contents_of(list_id);
+    assert_eq!(
+        rows.len(),
+        5,
+        "growth should realize every row, got {rows:?}"
+    );
+    for i in 0..5 {
+        assert!(rows.contains_key(&i), "row {i} should be realized");
+    }
+}
+
+#[test]
 fn updating_to_new_items_refreshes_realized_row_content() {
     let mk_el =
         |items: Vec<i32>| list_view(items, |n, _| TextBlock::new(format!("row-{n}"))).build();

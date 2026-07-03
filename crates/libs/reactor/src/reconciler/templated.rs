@@ -165,6 +165,19 @@ impl<B: Backend + 'static> Reconciler<B> {
                 self.unmount(cid);
             }
             self.backend.set_templated_item_count(id, new_count);
+
+            // The WinUI backend has no virtualization callbacks, so newly added
+            // rows are only ever realized eagerly. Without this, growing a list
+            // (e.g. a live, changing collection) leaves the appended rows blank.
+            if self.eager_templated_realization && new_count > old_count {
+                let mut q = self.realization_queue.borrow_mut();
+                for row_idx in old_count..new_count {
+                    q.push(RealizationRequest::Realize {
+                        list_id: id,
+                        row_idx,
+                    });
+                }
+            }
         }
 
         if !old.same_items_as(new) {
