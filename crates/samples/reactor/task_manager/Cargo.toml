@@ -1,0 +1,28 @@
+[package]
+name = "reactor_task_manager"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+windows-reactor = { workspace = true }
+
+[dependencies.windows]
+workspace = true
+features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+    "Win32_System_SystemInformation",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_UI_WindowsAndMessaging",
+]
+
+[build-dependencies]
+windows-reactor-setup = { workspace = true }
+
+[dev-dependencies]
+test_reactor = { path = "../../../tests/libs/reactor" }
+
+[lints]
+workspace = true
