@@ -103,6 +103,7 @@ impl SystemMonitor for FakeMonitor {
                 group: *group,
                 cpu_percent: cpu.get(pid).copied().flatten(),
                 memory_bytes: Some((*pid as u64) * 1_048_576),
+                icon: None,
             })
             .collect();
 

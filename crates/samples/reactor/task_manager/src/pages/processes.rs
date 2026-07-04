@@ -1,10 +1,13 @@
 //! The Processes page: a live, grouped, sortable process list.
 
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use windows_reactor::*;
 
-use crate::monitor::{MonitorKind, ProcessGroup, ProcessInfo, ProcessStatus, Snapshot};
+use crate::monitor::{
+    MonitorKind, ProcessGroup, ProcessIcon, ProcessInfo, ProcessStatus, Snapshot,
+};
 use crate::view::{Row, Sort, SortColumn, build_rows, group_label};
 
 const COL_ICON: f64 = 36.0;
@@ -44,6 +47,9 @@ pub fn processes_page(props: &ProcessesProps, cx: &mut RenderCx) -> Element {
     let (interval_ms, set_interval) = cx.use_state(1000_u64);
 
     let monitor = cx.use_ref::<Option<Box<dyn crate::monitor::SystemMonitor>>>(None);
+    // Built image sources keyed by icon identity, so we build each `WriteableBitmap`
+    // once rather than on every render.
+    let icon_cache = cx.use_ref::<HashMap<usize, ImageSource>>(HashMap::new());
 
     // Refresh loop: (re)armed whenever the interval changes. The monitor is
     // constructed once and retained across ticks in a ref.
@@ -75,7 +81,7 @@ pub fn processes_page(props: &ProcessesProps, cx: &mut RenderCx) -> Element {
     let header = build_header(sort, set_sort);
 
     let list = list_view(rows, move |row, _idx| {
-        render_row(row, &collapsed, set_collapsed.clone())
+        render_row(row, &collapsed, set_collapsed.clone(), &icon_cache)
     })
     .with_key_selector(|row: &Row| row.key());
 
@@ -168,6 +174,7 @@ fn render_row(
     row: &Row,
     collapsed: &[ProcessGroup],
     set_collapsed: SetState<Vec<ProcessGroup>>,
+    icon_cache: &HookRef<HashMap<usize, ImageSource>>,
 ) -> Element {
     match row {
         Row::Group {
@@ -175,7 +182,7 @@ fn render_row(
             count,
             expanded,
         } => render_group_header(*group, *count, *expanded, collapsed.to_vec(), set_collapsed),
-        Row::Process(p) => render_process_row(p),
+        Row::Process(p) => render_process_row(p, icon_cache),
     }
 }
 
@@ -201,7 +208,10 @@ fn render_group_header(
         .into()
 }
 
-fn render_process_row(p: &ProcessInfo) -> Element {
+fn render_process_row(
+    p: &ProcessInfo,
+    icon_cache: &HookRef<HashMap<usize, ImageSource>>,
+) -> Element {
     let status = match p.status {
         ProcessStatus::Running => "Running",
         ProcessStatus::Suspended => "Suspended",
@@ -215,16 +225,8 @@ fn render_process_row(p: &ProcessInfo) -> Element {
         None => "\u{2014}".to_string(),
     };
 
-    // Placeholder icon; per-executable icons are a follow-up (see spec).
-    let glyph = match p.group {
-        ProcessGroup::App => "\u{E737}",
-        ProcessGroup::Background => "\u{E115}",
-    };
-
     hstack((
-        text_block(glyph)
-            .font_family("Segoe Fluent Icons")
-            .width(COL_ICON),
+        icon_cell(p, icon_cache),
         text_block(p.name.clone()).width(COL_NAME),
         text_block(status).width(COL_STATUS).opacity(0.8),
         text_block(p.pid.to_string()).width(COL_PID).opacity(0.8),
@@ -239,4 +241,44 @@ fn render_process_row(p: &ProcessInfo) -> Element {
         bottom: 4.0,
     })
     .into()
+}
+
+/// The leading icon cell, `COL_ICON` wide: the per-executable icon when
+/// available, otherwise a group glyph fallback.
+fn icon_cell(p: &ProcessInfo, icon_cache: &HookRef<HashMap<usize, ImageSource>>) -> Element {
+    if let Some(icon) = &p.icon
+        && let Some(source) = icon_source(icon, icon_cache)
+    {
+        let image = Image::new(source)
+            .width(16.0)
+            .height(16.0)
+            .horizontal_alignment(HorizontalAlignment::Center);
+        return border(image).width(COL_ICON).into();
+    }
+
+    let glyph = match p.group {
+        ProcessGroup::App => "\u{E737}",
+        ProcessGroup::Background => "\u{E115}",
+    };
+    text_block(glyph)
+        .font_family("Segoe Fluent Icons")
+        .width(COL_ICON)
+        .into()
+}
+
+/// Build (and memoise) the `ImageSource` for an icon, keyed by its identity.
+fn icon_source(
+    icon: &ProcessIcon,
+    icon_cache: &HookRef<HashMap<usize, ImageSource>>,
+) -> Option<ImageSource> {
+    let id = icon.id();
+    if let Some(src) = icon_cache.borrow().get(&id) {
+        return Some(src.clone());
+    }
+    let px = &icon.0;
+    let source: ImageSource = RasterImageSource::from_bgra8(px.width, px.height, &px.bgra)
+        .ok()?
+        .into();
+    icon_cache.borrow_mut().insert(id, source.clone());
+    Some(source)
 }

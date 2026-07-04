@@ -300,12 +300,19 @@ data denied to a standard user; column customization/persistence; search/filter.
 
 Deferred from the MVP (small, tracked here so they aren't lost):
 
-- **Per-executable icons.** Rows currently render placeholder Segoe Fluent Icons
-  glyphs (app vs background); extract real per-process icons (`HICON`) later.
 - **Suspended-state detection.** `ProcessStatus` is always `Running` for now.
 - **WinUI-window integration self-test.** A `test_reactor_selftest`-style harness
   that launches the real window and asserts it comes up (the current
   `examples/selftest.rs` validates the data layer only).
+
+Landed after the initial MVP:
+
+- **Per-executable icons.** Each process's small icon is extracted (`SHGetFileInfo`
+  → `GetDIBits` to premultiplied BGRA8) and cached by executable path in the
+  monitor. The UI turns the pixels into an in-memory WinUI `WriteableBitmap` via
+  the reactor `RasterImageSource` (no temp files), memoised by icon identity.
+  Rows fall back to the app/background Segoe Fluent Icons glyph when extraction
+  fails.
 
 ## 8. Open questions (to resolve as they come up)
 

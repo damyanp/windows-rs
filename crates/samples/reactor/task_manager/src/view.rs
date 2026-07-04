@@ -164,6 +164,7 @@ mod tests {
             group,
             cpu_percent: cpu,
             memory_bytes: mem,
+            icon: None,
         }
     }
 

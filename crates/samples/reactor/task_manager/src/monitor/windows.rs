@@ -4,30 +4,40 @@
 //! from `OpenProcess` + `GetProcessTimes` / `GetProcessMemoryInfo`. Processes we
 //! cannot open (access denied) still appear, just with missing fields.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::mem::{size_of, zeroed};
+use std::rc::Rc;
 use std::time::Instant;
 
-use windows::Win32::Foundation::{CloseHandle, FILETIME, HWND, LPARAM};
+use windows::Win32::Foundation::{CloseHandle, FILETIME, HWND, LPARAM, MAX_PATH};
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::ProcessStatus::{K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
 use windows::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
 use windows::Win32::System::Threading::{
-    GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    GetProcessTimes, OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+    QueryFullProcessImageNameW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, GetWindowTextLengthW, GetWindowThreadProcessId, IsWindowVisible,
 };
-use windows::core::BOOL;
+use windows::core::{BOOL, PWSTR};
 
-use super::{CpuTracker, ProcessGroup, ProcessInfo, ProcessStatus, Snapshot, SystemMonitor};
+use super::icon::extract_icon_bgra;
+use super::{
+    CpuTracker, IconPixels, ProcessGroup, ProcessIcon, ProcessInfo, ProcessStatus, Snapshot,
+    SystemMonitor,
+};
 
 pub struct WindowsMonitor {
     logical_processors: u32,
     cpu: CpuTracker,
     prev_instant: Option<Instant>,
+    /// Extracted icons keyed by executable path. `None` marks a path we tried
+    /// and failed, so we don't retry it every tick.
+    icon_cache: HashMap<String, Option<ProcessIcon>>,
 }
 
 impl Default for WindowsMonitor {
@@ -43,7 +53,21 @@ impl WindowsMonitor {
             logical_processors,
             cpu: CpuTracker::new(logical_processors),
             prev_instant: None,
+            icon_cache: HashMap::new(),
         }
+    }
+
+    /// Icon for an executable path, extracting and caching on first use.
+    fn icon_for(&mut self, path: &str) -> Option<ProcessIcon> {
+        if path.is_empty() {
+            return None;
+        }
+        self.icon_cache
+            .entry(path.to_string())
+            .or_insert_with(|| {
+                extract_icon_bgra(path).map(|px: IconPixels| ProcessIcon(Rc::new(px)))
+            })
+            .clone()
     }
 }
 
@@ -66,18 +90,22 @@ impl SystemMonitor for WindowsMonitor {
 
         let processes = raw
             .into_iter()
-            .map(|p| ProcessInfo {
-                pid: p.pid,
-                name: p.image_name.clone(),
-                image_name: p.image_name,
-                status: ProcessStatus::Running,
-                group: if windowed.contains(&p.pid) {
-                    ProcessGroup::App
-                } else {
-                    ProcessGroup::Background
-                },
-                cpu_percent: cpu.get(&p.pid).copied().flatten(),
-                memory_bytes: p.memory_bytes,
+            .map(|p| {
+                let icon = self.icon_for(&p.exe_path);
+                ProcessInfo {
+                    pid: p.pid,
+                    name: p.image_name.clone(),
+                    image_name: p.image_name,
+                    status: ProcessStatus::Running,
+                    group: if windowed.contains(&p.pid) {
+                        ProcessGroup::App
+                    } else {
+                        ProcessGroup::Background
+                    },
+                    cpu_percent: cpu.get(&p.pid).copied().flatten(),
+                    memory_bytes: p.memory_bytes,
+                    icon,
+                }
             })
             .collect();
 
@@ -92,6 +120,7 @@ impl SystemMonitor for WindowsMonitor {
 struct RawProcess {
     pid: u32,
     image_name: String,
+    exe_path: String,
     busy_100ns: Option<u64>,
     memory_bytes: Option<u64>,
 }
@@ -135,6 +164,7 @@ fn enumerate_processes() -> Vec<RawProcess> {
 unsafe fn read_process(entry: &PROCESSENTRY32W) -> RawProcess {
     let pid = entry.th32ProcessID;
     let image_name = wide_to_string(&entry.szExeFile);
+    let mut exe_path = String::new();
     let mut busy_100ns = None;
     let mut memory_bytes = None;
 
@@ -161,12 +191,28 @@ unsafe fn read_process(entry: &PROCESSENTRY32W) -> RawProcess {
             memory_bytes = Some(counters.WorkingSetSize as u64);
         }
 
+        let mut buf = [0u16; MAX_PATH as usize];
+        let mut len = buf.len() as u32;
+        if unsafe {
+            QueryFullProcessImageNameW(
+                handle,
+                PROCESS_NAME_WIN32,
+                PWSTR(buf.as_mut_ptr()),
+                &mut len,
+            )
+        }
+        .is_ok()
+        {
+            exe_path = String::from_utf16_lossy(&buf[..len as usize]);
+        }
+
         let _ = unsafe { CloseHandle(handle) };
     }
 
     RawProcess {
         pid,
         image_name,
+        exe_path,
         busy_100ns,
         memory_bytes,
     }
