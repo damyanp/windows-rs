@@ -65,6 +65,7 @@ widget_modules! {
     progress_ring,
     radio_button,
     radio_buttons,
+    raster_image_source,
     rating_control,
     relative_panel,
     repeat_button,

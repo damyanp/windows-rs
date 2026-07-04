@@ -4928,6 +4928,48 @@ pub struct IBrush_Vtbl {
     pub base__: windows_core::IInspectable_Vtbl,
 }
 windows_core::imp::define_interface!(
+    IBuffer,
+    IBuffer_Vtbl,
+    0x905a0fe0_bc53_11df_8c49_001e4fc686da
+);
+impl windows_core::RuntimeType for IBuffer {
+    const SIGNATURE: windows_core::imp::ConstBuffer =
+        windows_core::imp::ConstBuffer::for_interface::<Self>();
+}
+windows_core::imp::interface_hierarchy!(
+    IBuffer,
+    windows_core::IUnknown,
+    windows_core::IInspectable
+);
+#[repr(C)]
+pub struct IBuffer_Vtbl {
+    pub base__: windows_core::IInspectable_Vtbl,
+}
+windows_core::imp::define_interface!(
+    IBufferByteAccess,
+    IBufferByteAccess_Vtbl,
+    0x905a0fef_bc53_11df_8c49_001e4fc686da
+);
+windows_core::imp::interface_hierarchy!(IBufferByteAccess, windows_core::IUnknown);
+impl IBufferByteAccess {
+    pub(crate) unsafe fn Buffer(&self) -> windows_core::Result<*mut u8> {
+        unsafe {
+            let mut result__ = core::mem::zeroed();
+            (windows_core::Interface::vtable(self).Buffer)(
+                windows_core::Interface::as_raw(self),
+                &mut result__,
+            )
+            .map(|| result__)
+        }
+    }
+}
+#[repr(C)]
+pub struct IBufferByteAccess_Vtbl {
+    pub base__: windows_core::IUnknown_Vtbl,
+    pub Buffer:
+        unsafe extern "system" fn(*mut core::ffi::c_void, *mut *mut u8) -> windows_core::HRESULT,
+}
+windows_core::imp::define_interface!(
     IButton,
     IButton_Vtbl,
     0x216c183d_d07a_5aa5_b8a4_0300a2683e87
@@ -16828,6 +16870,54 @@ pub struct IWindowNative_Vtbl {
     ) -> windows_core::HRESULT,
 }
 windows_core::imp::define_interface!(
+    IWriteableBitmap,
+    IWriteableBitmap_Vtbl,
+    0x78c824a9_0e43_5f1e_93bc_d046cca82b7e
+);
+impl windows_core::RuntimeType for IWriteableBitmap {
+    const SIGNATURE: windows_core::imp::ConstBuffer =
+        windows_core::imp::ConstBuffer::for_interface::<Self>();
+}
+impl IWriteableBitmap {
+    pub(crate) fn PixelBuffer(&self) -> windows_core::Result<IBuffer> {
+        unsafe {
+            let mut result__ = core::mem::zeroed();
+            (windows_core::Interface::vtable(self).PixelBuffer)(
+                windows_core::Interface::as_raw(self),
+                &mut result__,
+            )
+            .and_then(|| windows_core::Type::from_abi(result__))
+        }
+    }
+}
+#[repr(C)]
+pub struct IWriteableBitmap_Vtbl {
+    pub base__: windows_core::IInspectable_Vtbl,
+    pub PixelBuffer: unsafe extern "system" fn(
+        *mut core::ffi::c_void,
+        *mut *mut core::ffi::c_void,
+    ) -> windows_core::HRESULT,
+}
+windows_core::imp::define_interface!(
+    IWriteableBitmapFactory,
+    IWriteableBitmapFactory_Vtbl,
+    0x26e861d9_b080_512b_96c4_80050e7e08d1
+);
+impl windows_core::RuntimeType for IWriteableBitmapFactory {
+    const SIGNATURE: windows_core::imp::ConstBuffer =
+        windows_core::imp::ConstBuffer::for_interface::<Self>();
+}
+#[repr(C)]
+pub struct IWriteableBitmapFactory_Vtbl {
+    pub base__: windows_core::IInspectable_Vtbl,
+    pub CreateInstanceWithDimensions: unsafe extern "system" fn(
+        *mut core::ffi::c_void,
+        i32,
+        i32,
+        *mut *mut core::ffi::c_void,
+    ) -> windows_core::HRESULT,
+}
+windows_core::imp::define_interface!(
     IXamlControlsResources,
     IXamlControlsResources_Vtbl,
     0x918ca043_f42c_5805_861b_62d6d1d0c162
@@ -23702,6 +23792,66 @@ impl windows_core::RuntimeName for WindowEventArgs {
 }
 unsafe impl Send for WindowEventArgs {}
 unsafe impl Sync for WindowEventArgs {}
+#[repr(transparent)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WriteableBitmap(windows_core::IUnknown);
+windows_core::imp::interface_hierarchy!(
+    WriteableBitmap,
+    windows_core::IUnknown,
+    windows_core::IInspectable
+);
+windows_core::imp::required_hierarchy!(
+    WriteableBitmap,
+    BitmapSource,
+    ImageSource,
+    DependencyObject
+);
+impl WriteableBitmap {
+    pub(crate) fn CreateInstanceWithDimensions(
+        pixelwidth: i32,
+        pixelheight: i32,
+    ) -> windows_core::Result<Self> {
+        Self::IWriteableBitmapFactory(|this| unsafe {
+            let mut result__ = core::mem::zeroed();
+            (windows_core::Interface::vtable(this).CreateInstanceWithDimensions)(
+                windows_core::Interface::as_raw(this),
+                pixelwidth,
+                pixelheight,
+                &mut result__,
+            )
+            .and_then(|| windows_core::Type::from_abi(result__))
+        })
+    }
+    fn IWriteableBitmapFactory<
+        R,
+        F: FnOnce(&IWriteableBitmapFactory) -> windows_core::Result<R>,
+    >(
+        callback: F,
+    ) -> windows_core::Result<R> {
+        static SHARED: windows_core::imp::FactoryCache<WriteableBitmap, IWriteableBitmapFactory> =
+            windows_core::imp::FactoryCache::new();
+        SHARED.call(callback)
+    }
+}
+impl windows_core::RuntimeType for WriteableBitmap {
+    const SIGNATURE: windows_core::imp::ConstBuffer =
+        windows_core::imp::ConstBuffer::for_class::<Self, IWriteableBitmap>();
+}
+unsafe impl windows_core::Interface for WriteableBitmap {
+    type Vtable = <IWriteableBitmap as windows_core::Interface>::Vtable;
+    const IID: windows_core::GUID = <IWriteableBitmap as windows_core::Interface>::IID;
+}
+impl core::ops::Deref for WriteableBitmap {
+    type Target = IWriteableBitmap;
+    fn deref(&self) -> &Self::Target {
+        unsafe { core::mem::transmute(self) }
+    }
+}
+impl windows_core::RuntimeName for WriteableBitmap {
+    const NAME: &'static str = "Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap";
+}
+unsafe impl Send for WriteableBitmap {}
+unsafe impl Sync for WriteableBitmap {}
 #[repr(transparent)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct XamlControlsResources(windows_core::IUnknown);

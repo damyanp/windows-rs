@@ -1346,6 +1346,9 @@ impl Backend for WinUIBackend {
                 (Prop::ImageSource, PropValue::SurfaceImageSource(sis), Handle::Image(img)) => {
                     img.SetSource(&sis.image_source()?)
                 }
+                (Prop::ImageSource, PropValue::RasterImageSource(ris), Handle::Image(img)) => {
+                    img.SetSource(&ris.image_source()?)
+                }
                 (Prop::ImageSource, PropValue::Unset, Handle::Image(img)) => img.SetSource(None),
                 (Prop::Header, PropValue::Str(s), Handle::TabViewItem(ti)) => {
                     let tb = string_as_textblock(s)?;
@@ -3262,6 +3265,11 @@ fn mount_static_tooltip_element(el: &Element) -> Option<bindings::UIElement> {
                 }
                 ImageSource::Surface(sis) => {
                     if let Ok(src) = sis.image_source() {
+                        let _ = i.SetSource(&src);
+                    }
+                }
+                ImageSource::Raster(ris) => {
+                    if let Ok(src) = ris.image_source() {
                         let _ = i.SetSource(&src);
                     }
                 }

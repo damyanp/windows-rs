@@ -2,8 +2,8 @@ use windows_reactor::BreadcrumbBar;
 use windows_reactor::{
     Canvas, ComboBox, Expander, HyperlinkButton, Image, InfoBadge, InfoBar, NavViewItem,
     NavigationView, NumberBox, PasswordBox, PasswordRevealMode, PersonPicture, Pivot, PivotItem,
-    ProgressBar, ProgressRing, RadioButton, RadioButtons, Shape, Slider, TabItem, TabView,
-    TitleBar, ToggleSwitch, Viewbox,
+    ProgressBar, ProgressRing, RadioButton, RadioButtons, RasterImageSource, Shape, Slider,
+    TabItem, TabView, TitleBar, ToggleSwitch, Viewbox,
 };
 use windows_reactor::{Color, GridLength};
 use windows_reactor::{
@@ -188,6 +188,19 @@ pub fn mount_image(h: Harness) -> FixtureFuture {
         }));
         h.render().await;
         assert_present!(h, "Reconciler_Mount_Image", bindings::Image);
+    })
+}
+
+pub fn mount_raster_image(h: Harness) -> FixtureFuture {
+    Box::pin(async move {
+        // 2x2 opaque BGRA image; exercises the in-memory WriteableBitmap path.
+        let pixels = [
+            0u8, 0, 255, 255, 0, 255, 0, 255, 255, 0, 0, 255, 255, 255, 255, 255,
+        ];
+        let source = RasterImageSource::from_bgra8(2, 2, &pixels).unwrap();
+        h.mount(cc(move |_| Image::new(source.clone().into()).into()));
+        h.render().await;
+        assert_present!(h, "Reconciler_Mount_RasterImage", bindings::Image);
     })
 }
 

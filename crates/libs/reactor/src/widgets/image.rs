@@ -23,6 +23,7 @@ pub enum ImageSource {
     None,
     Uri(String),
     Surface(SurfaceImageSource),
+    Raster(RasterImageSource),
 }
 impl From<SurfaceImageSource> for ImageSource {
     fn from(source: SurfaceImageSource) -> Self {
@@ -32,6 +33,16 @@ impl From<SurfaceImageSource> for ImageSource {
 impl From<Option<SurfaceImageSource>> for ImageSource {
     fn from(source: Option<SurfaceImageSource>) -> Self {
         source.map_or(Self::None, ImageSource::Surface)
+    }
+}
+impl From<RasterImageSource> for ImageSource {
+    fn from(source: RasterImageSource) -> Self {
+        Self::Raster(source)
+    }
+}
+impl From<Option<RasterImageSource>> for ImageSource {
+    fn from(source: Option<RasterImageSource>) -> Self {
+        source.map_or(Self::None, ImageSource::Raster)
     }
 }
 impl Image {
@@ -65,6 +76,12 @@ impl Widget for Image {
                 out.push(Binding::Prop(
                     Prop::ImageSource,
                     PropValue::SurfaceImageSource(s.clone()),
+                ));
+            }
+            ImageSource::Raster(r) => {
+                out.push(Binding::Prop(
+                    Prop::ImageSource,
+                    PropValue::RasterImageSource(r.clone()),
                 ));
             }
             ImageSource::None => {}

@@ -84,6 +84,7 @@ pub static FIXTURES: &[(&str, FixtureFn)] = &[
     ("Reconciler_Mount_InfoBar", controls::mount_info_bar),
     ("Reconciler_Mount_InfoBadge", controls::mount_info_badge),
     ("Reconciler_Mount_Image", controls::mount_image),
+    ("Reconciler_Mount_RasterImage", controls::mount_raster_image),
     (
         "Reconciler_Mount_PersonPicture",
         controls::mount_person_picture,

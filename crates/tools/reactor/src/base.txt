@@ -274,6 +274,8 @@ Microsoft::UI::Xaml::Media::ImageSource
 Microsoft::UI::Xaml::Media::Imaging::BitmapImage::CreateInstance
 Microsoft::UI::Xaml::Media::Imaging::IBitmapImage::put_UriSource
 Microsoft::UI::Xaml::Media::Imaging::SurfaceImageSource::CreateInstanceWithDimensions
+Microsoft::UI::Xaml::Media::Imaging::WriteableBitmap::CreateInstanceWithDimensions
+Microsoft::UI::Xaml::Media::Imaging::IWriteableBitmap::get_PixelBuffer
 Microsoft::UI::Xaml::Media::MicaBackdrop::CreateInstance
 Microsoft::UI::Xaml::Media::SolidColorBrush::CreateInstance
 Microsoft::UI::Xaml::Media::Stretch
@@ -325,6 +327,7 @@ Windows::Win32::Graphics::Gdi::MONITOR_DEFAULTTONEAREST
 Windows::Win32::Graphics::Gdi::MonitorFromWindow
 Windows::Win32::System::Com::COINIT_APARTMENTTHREADED
 Windows::Win32::System::Com::CoInitializeEx
+Windows::Win32::System::WinRT::IBufferByteAccess::Buffer
 Windows::Win32::UI::HiDpi::DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
 Windows::Win32::UI::HiDpi::GetDpiForWindow
 Windows::Win32::UI::HiDpi::SetProcessDpiAwarenessContext
