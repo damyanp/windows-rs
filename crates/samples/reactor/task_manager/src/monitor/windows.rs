@@ -80,6 +80,7 @@ impl SystemMonitor for WindowsMonitor {
         self.prev_instant = Some(now);
 
         let windowed = pids_with_visible_windows();
+        let suspended = super::suspend::suspended_pids();
         let raw = enumerate_processes();
 
         let busy: Vec<(u32, u64)> = raw
@@ -96,7 +97,11 @@ impl SystemMonitor for WindowsMonitor {
                     pid: p.pid,
                     name: p.image_name.clone(),
                     image_name: p.image_name,
-                    status: ProcessStatus::Running,
+                    status: if suspended.contains(&p.pid) {
+                        ProcessStatus::Suspended
+                    } else {
+                        ProcessStatus::Running
+                    },
                     group: if windowed.contains(&p.pid) {
                         ProcessGroup::App
                     } else {

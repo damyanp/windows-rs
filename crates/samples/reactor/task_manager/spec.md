@@ -300,13 +300,17 @@ data denied to a standard user; column customization/persistence; search/filter.
 
 Deferred from the MVP (small, tracked here so they aren't lost):
 
-- **Suspended-state detection.** `ProcessStatus` is always `Running` for now.
 - **WinUI-window integration self-test.** A `test_reactor_selftest`-style harness
   that launches the real window and asserts it comes up (the current
   `examples/selftest.rs` validates the data layer only).
 
 Landed after the initial MVP:
 
+- **Suspended-state detection.** A process is reported `Suspended` when it has
+  threads and every thread is waiting with a `Suspended` wait reason — the same
+  heuristic Task Manager and Process Hacker use, covering both `SuspendThread`
+  suspension and OS-frozen packaged (UWP) apps. Implemented via
+  `NtQuerySystemInformation(SystemProcessInformation)` in `monitor/suspend.rs`.
 - **Per-executable icons.** Each process's small icon is extracted (`SHGetFileInfo`
   → `GetDIBits` to premultiplied BGRA8) and cached by executable path in the
   monitor. The UI turns the pixels into an in-memory WinUI `WriteableBitmap` via

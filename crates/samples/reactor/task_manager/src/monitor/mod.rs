@@ -6,6 +6,7 @@
 mod cpu;
 mod fake;
 mod icon;
+mod suspend;
 mod windows;
 
 pub use cpu::CpuTracker;
